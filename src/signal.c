@@ -21,7 +21,7 @@
 
 int burst(uint32_t dur_us, const struct pwm_dt_spec *ir_led) {
 
-    int ret = pwm_set_dt(ir_led, PERIOD_NS, PULSE_50);
+    int ret = pwm_set_dt(ir_led, PERIOD_TEST, PULSE_TEST);
     if(ret) {
         return -1;
     }
@@ -62,21 +62,21 @@ int start_bit(const struct pwm_dt_spec *ir_led) {
 }
 
 int stop_bit(const struct pwm_dt_spec *ir_led) {
-    int ret = burst(590, ir_led);
+    int ret = burst(560, ir_led);
     if(ret) {
         return -1;
     }
-    k_usleep(590);
+    k_usleep(560);
     return 0;
 }
 
-int ir_send(uint64_t hex_code, const struct pwm_dt_spec *ir_led) {
+int ir_send(uint16_t address, uint16_t code, const struct pwm_dt_spec *ir_led) {
     int ret = start_bit(ir_led);
     if(ret) {
         return -1;
     }
-    for (int i = 0; i < 32; i++) {
-        if (hex_code & (1<<i)) {
+    for (int i = 0; i < 16; i++) {
+        if (address & (1<<i)) {
             ret = logic_1(ir_led);
             if(ret) {
                 return -1;
@@ -89,6 +89,22 @@ int ir_send(uint64_t hex_code, const struct pwm_dt_spec *ir_led) {
             }
         }
     }
+
+    for (int i = 0; i < 16; i++) {
+        if (code & (1<<i)) {
+            ret = logic_1(ir_led);
+            if(ret) {
+                return -1;
+            }
+        }
+        else {
+            ret = logic_0(ir_led);
+            if(ret){
+                return -1;
+            }
+        }
+    }
+
     ret = stop_bit(ir_led);
     if(ret){
         return -1;

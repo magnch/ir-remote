@@ -27,4 +27,5 @@
             pwms = <&pwm0 0 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
         };
     };
+
 };

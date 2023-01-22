@@ -1,3 +1,5 @@
+////////////// PRE-PROCESSOR /////////////////////////////////////////////////////
+
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
@@ -5,9 +7,15 @@
 #include <zephyr/drivers/pwm.h>
 #include "../inc/signal.h"
 
+#define ADDRESS 0x0707
 
-#define POWER 0xE0E040BF
+#define POWER 0xFD02
+#define SOURCE 0xFE01
+#define VOL_UP 0xF807
+#define VOL_DOWN 0xF40B
 
+
+////////////// SETUP ////////////////////////////////////////////////////////////
 
 static const struct gpio_dt_spec leds[] = {GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios), 
                                            GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios), 
@@ -23,10 +31,12 @@ static const struct gpio_dt_spec buttons[] = {GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gp
 
 static const struct pwm_dt_spec ir_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0));
 
+////////////// MAIN FUNCTION /////////////////////////////////////////////////////
 
 void main(void) {
 
     int ret;
+    uint64_t timer = k_uptime_get();
 
     for(int i = 0; i < 4; i++) {
         
@@ -43,40 +53,58 @@ void main(void) {
         }
     }
 
-    while(1) {
+////////////// MAIN LOOP /////////////////////////////////////////////////////
 
+    while(1) {
+        
+        // Status LED
+        if(k_uptime_get() - timer >= MSEC_PER_SEC) {
+            gpio_pin_toggle_dt(&leds[0]);
+            timer = k_uptime_get();
+        }
+
+        // Button 1
         if(gpio_pin_get_dt(&buttons[0]) == 1) {
             while(gpio_pin_get_dt(&buttons[0]) == 1) {
 
             }
-           ret = ir_send(POWER, &ir_led);
-           if(ret) {
-            printk("IR_send failed \n");
-           }
+            ret = ir_send(ADDRESS, POWER, &ir_led);
+            if(ret) {
+                printk("IR_send failed \n");
+            }
         }
         
+        // Button 2
         if(gpio_pin_get_dt(&buttons[1]) == 1) {
+            while(gpio_pin_get_dt(&buttons[1]) == 1) {
 
-            // TEST
-            ret = pwm_set_dt(&ir_led, NSEC_PER_SEC, NSEC_PER_SEC);
-            if(ret) {
-                printk("Failed to set PWM in test \n");
             }
-
-            k_msleep(MSEC_PER_SEC);
-
-            ret = pwm_set_dt(&ir_led, 0, 0);
+            ret = ir_send(ADDRESS, SOURCE, &ir_led);
             if(ret) {
-                printk("Failed to set PWM to 0 in test \n");
+                printk("IR_send failed \n");
             }
         }
 
+        // Button 3
         if(gpio_pin_get_dt(&buttons[2]) == 1) {
-            // VOLUME UP BUTTON
+            while(gpio_pin_get_dt(&buttons[2]) == 1) {
+
+            }
+            ret = ir_send(ADDRESS, VOL_UP, &ir_led);
+            if(ret) {
+                printk("IR_send failed \n");
+            }
         }
 
+        // Button 4
         if(gpio_pin_get_dt(&buttons[3]) == 1) {
-            // VOLUME DOWN BUTTON
+            while(gpio_pin_get_dt(&buttons[3]) == 1) {
+
+            }
+            ret = ir_send(ADDRESS, VOL_DOWN, &ir_led);
+            if(ret) {
+                printk("IR_send failed \n");
+            }
         }
     }
 }
